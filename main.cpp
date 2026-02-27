@@ -5,7 +5,6 @@
 #include "screen.h"
 #include "shape.h"
 
-// тут вывод в мой файл просто чтобы норм смотрелось
 std::ofstream fout("C:\\Users\\hp\\Desktop\\otcryt.txt");
 
 // полуокружность
@@ -13,10 +12,7 @@ class h_circle : public rectangle, public reflectable {
 public:
     h_circle(point a, int rd)
             : rectangle(point(a.x - rd, a.y), point(a.x + rd, a.y + rd * 0.7 + 1)) {}
-    void draw();
-    void flip_horisontally() {}
-    void rotate_right() {}
-    void rotate_left() {}
+    void draw() override;
 };
 
 void h_circle::draw() {
@@ -49,14 +45,12 @@ void h_circle::draw() {
     }
 }
 
-// присоединение снизу
 void down(shape& p, const shape& q) {
     point n = q.south();
     point s = p.north();
     p.move(n.x - s.x, n.y - s.y - 1);
 }
 
-// присоединение слева и справва
 void left_of(shape& p, const shape& q) {
     point pe = p.east();
     point qw = q.west();
@@ -69,7 +63,7 @@ void right_of(shape& p, const shape& q) {
     p.move(qe.x - pw.x + 1, qe.y - pw.y);
 }
 
-// параллелограмм 4 фигура
+// параллелограмм
 class parallelogram : public rotatable, public reflectable {
     parallelogram(const parallelogram&) = delete;
     parallelogram& operator=(const parallelogram&) = delete;
@@ -90,21 +84,36 @@ protected:
                 tl = point(sw.x + s, sw.y + h);
                 tr = point(sw.x + s + w, sw.y + h);
             } else {
+                // вертикальное отражение (верх шире, низ уже)
                 bl = point(sw.x + s, sw.y);
                 br = point(sw.x + s + w, sw.y);
                 tl = point(sw.x, sw.y + h);
                 tr = point(sw.x + w, sw.y + h);
             }
         } else if (state == rotated::right) {
-            bl = point(sw.x, sw.y);
-            br = point(sw.x + h, sw.y);
-            tl = point(sw.x + s, sw.y + w);
-            tr = point(sw.x + s + h, sw.y + w);
-        } else {
-            bl = point(sw.x, sw.y);
-            br = point(sw.x + h, sw.y);
-            tl = point(sw.x - s, sw.y + w);
-            tr = point(sw.x - s + h, sw.y + w);
+            if (!vert) {
+                bl = point(sw.x, sw.y);
+                br = point(sw.x + h, sw.y);
+                tl = point(sw.x + s, sw.y + w);
+                tr = point(sw.x + s + h, sw.y + w);
+            } else {
+                bl = point(sw.x + s, sw.y);
+                br = point(sw.x + s + h, sw.y);
+                tl = point(sw.x, sw.y + w);
+                tr = point(sw.x + h, sw.y + w);
+            }
+        } else { // rotated::left
+            if (!vert) {
+                bl = point(sw.x + s, sw.y);
+                br = point(sw.x + s + h, sw.y);
+                tl = point(sw.x, sw.y + w);
+                tr = point(sw.x + h, sw.y + w);
+            } else {
+                bl = point(sw.x, sw.y);
+                br = point(sw.x + h, sw.y);
+                tl = point(sw.x + s, sw.y + w);
+                tr = point(sw.x + s + h, sw.y + w);
+            }
         }
     }
 
@@ -183,7 +192,6 @@ public:
     }
 };
 
-// еблет этого гнома как в примере
 class myshape : public rectangle {
     int w, h;
     line l_eye;
@@ -192,14 +200,12 @@ class myshape : public rectangle {
 
 public:
     myshape(point, point);
-    void draw();
-    void move(int, int);
-    void resize(double r) {
+    void draw() override;
+    void move(int, int) override;
+    void resize(double r) override {
         rectangle::resize(r);
         rectangle::move(w * (1 - r) * 0.5, h * (1 - r) * 0.5);
     }
-    void rotate_left() {}
-    void rotate_right() {}
 };
 
 myshape::myshape(point a, point b)
@@ -226,7 +232,6 @@ void myshape::move(int a, int b) {
     mouth.move(a, b);
 }
 
-// тут выводим и в консось и в файл одновременно
 void shape_refresh_to_file() {
     screen_clear();
     for (auto p : shape::shapes)
@@ -245,48 +250,44 @@ void shape_refresh_to_file() {
 int main() {
     setlocale(LC_ALL, "Rus");
     screen_init();
-
-    // объявим набор фигур
+    
     rectangle hat(point(0, 0), point(14, 5));
     line brim(point(20, 9), 17);
     myshape face(point(15, 10), point(27, 18));
     h_circle beard(point(40, 10), 5);
 
-    // три параллелограмма для позиций 2, 3, 14
-    parallelogram sideburn_left(point(50, 0), 4, 7, 2);
-    parallelogram sideburn_right(point(60, 0), 4, 7, 2);
-    parallelogram spike(point(70, 0), 4, 7, 2);
+    parallelogram sideburn_left(point(50, 0), 5, 8, 2);
+    parallelogram sideburn_right(point(60, 0), 5, 8, 2);
+    parallelogram spike(point(70, 0), 5, 8, 2);
 
     shape_refresh_to_file();
     std::cout << "~~~ Generated... ~~~\n";
     fout << "~~~ Generated... ~~~\n";
     std::cin.get();
 
-    // подготовка к сборке
+    // подготовка
     hat.rotate_right();
     brim.resize(2.0);
     face.resize(1.2);
     beard.flip_vertically();
     beard.resize(1.2);
 
-    // меняем параллелограммы
-    sideburn_left.flip_horisontally();
-    sideburn_left.resize(1.2);
-    sideburn_right.resize(1.2);
-    spike.flip_vertically();
-    spike.resize(1.2);
+    // трансформации параллелограммов
+    sideburn_left.rotate_left();      // влево
+    sideburn_right.rotate_right();    // вправо
+    spike.flip_vertically();          // вверх
+    spike.flip_horisontally();        // + горизонтально для симметрии
 
     shape_refresh_to_file();
     std::cout << "~~~ Prepared... ~~~\n";
     fout << "~~~ Prepared... ~~~\n";
     std::cin.get();
 
-    // собираем изображение
+    // сборка
     up(brim, face);
     up(hat, brim);
     down(beard, face);
 
-    // размещение параллелограммов
     left_of(sideburn_left, face);
     right_of(sideburn_right, face);
     up(spike, hat);
@@ -299,4 +300,4 @@ int main() {
     fout.close();
     screen_destroy();
     return 0;
-}
+}//
